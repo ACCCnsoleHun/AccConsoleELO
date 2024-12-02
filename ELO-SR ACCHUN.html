@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leaderboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #333;
+      color: #fff;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      text-align: center;
+      padding: 20px;
+    }
+
+    header img {
+      max-width: 300px;
+    }
+
+    .search-container {
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .search-container input {
+      padding: 10px;
+      font-size: 16px;
+      width: 300px;
+      border: 1px solid #555;
+      border-radius: 5px;
+      background-color: #222;
+      color: #fff;
+    }
+
+    table {
+      width: 80%;
+      margin: 20px auto;
+      border-collapse: separate;
+      border-spacing: 0;
+      border-radius: 15px;
+      overflow: hidden;
+      background-color: #444;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    th, td {
+      padding: 10px;
+      text-align: center;
+      border: 1px solid #555;
+    }
+
+    th {
+      background-color: #555;
+      font-weight: bold;
+    }
+
+    tr:nth-child(even) {
+      background-color: #3a3a3a;
+    }
+
+    tr:hover {
+      background-color: #555;
+    }
+
+    .elo {
+      font-weight: bold;
+      border-radius: 10px;
+    }
+
+    .rank {
+      font-weight: bold;
+      color: #fff; /* Rangszám fehér */
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="acc-console-hun-11-1.png" alt="ACC Console Hungary Banner">
+  </header>
+  <div class="search-container">
+    <input type="text" id="searchInput" placeholder="Keresés név alapján...">
+  </div>
+  <table id="leaderboard">
+    <thead>
+      <tr>
+        <th>Rang</th>
+        <th>Név</th>
+        <th>ELO Rating</th>
+        <th>Safety Rating</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Az adatok dinamikusan kerülnek betöltésre -->
+    </tbody>
+  </table>
+
+  <script>
+    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRW5sejtr8YhMGMS16JDMaa5vu8kHmXW9oKUBqeLl4YkXtf1IOxv8nbp90HadEOXp_tvm61l8hkBGA5/pub?gid=709450675&single=true&output=csv";
+
+    function getEloStyle(elo) {
+      if (elo < 1300) {
+        return 'background-color: #FF0000; color: #fff; border-radius: 10px;'; // Piros
+      } else if (elo >= 1300 && elo < 1700) {
+        return 'background-color: #CD7F32; color: #fff; border-radius: 10px;'; // Bronz
+      } else if (elo >= 1700 && elo < 2500) {
+        return 'background-color: #C0C0C0; color: #000; border-radius: 10px;'; // Ezüst
+      } else if (elo >= 2500 && elo < 5000) {
+        return 'background-color: #FFD700; color: #000; border-radius: 10px;'; // Arany
+      } else if (elo >= 5000 && elo < 6000) {
+        return 'background-color: #000; color: #fff; border-radius: 10px;'; // Fekete fehér betű
+      } else if (elo >= 6000 && elo < 8000) {
+        return 'background-color: #800080; color: #fff; border-radius: 10px;'; // Lila
+      } else if (elo >= 8000) {
+        return 'background-color: #00FF00; color: #000; border-radius: 10px;'; // Rikítózöld
+      }
+      return ''; // Alapértelmezett stílus
+    }
+
+    async function loadCSV() {
+      try {
+        const response = await fetch(csvUrl);
+        if (!response.ok) throw new Error("Hiba a CSV letöltése során.");
+        const csvText = await response.text();
+        const rows = csvText.trim().split("\n").map(row => row.split(","));
+
+        const tbody = document.querySelector("#leaderboard tbody");
+        tbody.innerHTML = "";
+
+        rows.slice(1).forEach((row, index) => {
+          const eloRating = parseInt(row[1], 10); // ELO érték egész számként
+          const eloCellStyle = getEloStyle(eloRating);
+
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td class="rank">${index + 1}</td>
+            <td>${row[0]}</td>
+            <td class="elo" style="${eloCellStyle}">${row[1]}</td>
+            <td class="safety">${row[2].replace(',', '.')}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        addSearchFunctionality();
+      } catch (error) {
+        console.error("Hiba történt:", error);
+      }
+    }
+
+    function addSearchFunctionality() {
+      const searchInput = document.getElementById("searchInput");
+      const rows = Array.from(document.querySelectorAll("#leaderboard tbody tr"));
+
+      searchInput.addEventListener("input", () => {
+        const query = searchInput.value.toLowerCase();
+        rows.forEach(row => {
+          const name = row.cells[1].textContent.toLowerCase();
+          row.style.display = name.includes(query) ? "" : "none";
+        });
+      });
+    }
+
+    loadCSV();
+    setInterval(loadCSV, 180000); // Félóránként frissítés
+  </script>
+</body>
+</html>
