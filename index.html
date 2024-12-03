@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #333; /* Sötétszürke háttér */
+            color: #fff; /* Fehér szöveg */
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            text-align: center;
+            background-color: #333;
+            color: white;
+            padding: 20px;
+        }
+
+        table {
+            width: 80%;
+            margin: 20px auto;
+            border-collapse: collapse;
+            background-color: #f9f9f9;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #333;
+            color: white;
+        }
+
+        tr:nth-child(odd) {
+            background-color: #555; /* Sötétszürke sor */
+        }
+
+        tr:nth-child(even) {
+            background-color: #666; /* Világosabb szürke sor */
+        }
+
+        .elo {
+            font-weight: bold;
+            border-radius: 8px; /* Sarkok lekerekítése */
+            background-color: inherit; /* A sor háttérszíne */
+        }
+
+        input[type="text"] {
+            display: block;
+            margin: 10px auto;
+            padding: 10px;
+            width: 50%;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Leaderboard</h1>
+    </header>
+    <input type="text" id="searchBox" placeholder="Keresés név szerint...">
+    <table id="leaderboard">
+        <thead>
+            <tr>
+                <th>Rang</th>
+                <th>Név</th>
+                <th>ELO Rating</th>
+                <th>Safety Rating</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- A JavaScript tölti fel az adatokat -->
+        </tbody>
+    </table>
+    <script>
+        const csvUrl ="https://docs.google.com/spreadsheets/d/e/2PACX-1vQmyki8A6KWnhueh9mom2AFV77_O-lpRm74YTco2XAB_7bgaXB1CSyk7pzP6e84lBanLIJJDbB-KwNf/pub?gid=726047727&single=true&output=csv";
+
+        function getEloStyle(elo) {
+            if (elo < 1300) {
+                return { style: "background-color: red; color: white;", label: "IRON" };
+            } else if (elo < 1500) {
+                return { style: "background-color: #cd7f32; color: white;", label: "BRONZE" };
+            } else if (elo < 1700) {
+                return { style: "background-color: #b87333; color: white;", label: "BRONZE+" };
+            } else if (elo < 2000) {
+                return { style: "background-color: silver; color: black;", label: "SILVER" };
+            } else if (elo < 2500) {
+                return { style: "background-color: #c0c0c0; color: black;", label: "SILVER+" };
+            } else if (elo < 3500) {
+                return { style: "background-color: gold; color: black;", label: "GOLD" };
+            } else if (elo < 5000) {
+                return { style: "background-color: #ffd700; color: black;", label: "GOLD+" };
+            } else if (elo < 6000) {
+                return { style: "background-color: black; color: white;", label: "PLATINUM" };
+            } else if (elo < 8000) {
+                return { style: "background-color: purple; color: white;", label: "LEGEND" };
+            } else {
+                return { style: "background-color: lime; color: black;", label: "ALIEN" };
+            }
+        }
+
+        async function loadCSV() {
+            try {
+                const response = await fetch(csvUrl);
+                if (!response.ok) throw new Error("Hiba a CSV letöltése során.");
+                const csvText = await response.text();
+                const rows = csvText.trim().split("\n").map(row => row.split(","));
+
+                const tbody = document.querySelector("#leaderboard tbody");
+                tbody.innerHTML = "";
+
+                rows.slice(1).forEach((row, index) => {
+                    if (row.length < 3) return;
+
+                    const eloRating = parseInt(row[1], 10);
+                    const { style: eloCellStyle, label: eloLabel } = getEloStyle(eloRating);
+
+                    let safetyRatingRaw = row[2]?.trim() || "0";
+                    let safetyRating = parseFloat(safetyRatingRaw.replace(',', '.'));
+                    if (isNaN(safetyRating)) safetyRating = 0.0;
+                    safetyRating = safetyRating.toFixed(1);
+
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td class="rank">${index + 1}</td>
+                        <td class="name">${row[0]}</td>
+                        <td class="elo" style="${eloCellStyle}">${row[1]} (${eloLabel})</td>
+                        <td class="safety">${safetyRating}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                addSearchFunctionality();
+            } catch (error) {
+                console.error("Hiba történt:", error);
+            }
+        }
+
+        function addSearchFunctionality() {
+            const searchBox = document.getElementById("searchBox");
+            searchBox.addEventListener("input", () => {
+                const filter = searchBox.value.toLowerCase();
+                const rows = document.querySelectorAll("#leaderboard tbody tr");
+                rows.forEach(row => {
+                    const nameCell = row.children[1];
+                    row.style.display = nameCell.textContent.toLowerCase().includes(filter) ? "" : "none";
+                });
+            });
+        }
+
+        loadCSV();
+    </script>
+</body>
+</html>
